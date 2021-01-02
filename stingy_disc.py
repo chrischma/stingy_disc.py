@@ -4,18 +4,29 @@ from bs4 import BeautifulSoup
 
 search = input("Enter any artist, album... : ")
 search = search.replace(" ","+")
+options = input("LPs only? (y/n): ")
+
+if options == "y":
+	options = "&format_desc=LP"
+else:
+	options = ""
 print("Searching...")
 
 
 # requesting data from discogs
-URL = f'https://www.discogs.com/sell/list?&limit=250&q={search}&format=Vinyl'
+URL = f'https://www.discogs.com/sell/list?&limit=250&q={search}&format=Vinyl{options}'
 page = requests.get(URL)
 
 soup = BeautifulSoup(page.content, 'html.parser')
 results = soup.find(id="pjax_container")
-	
-item_name_elems = results.find_all(class_='item_description_title')
-price_elems = results.find_all(class_="item_price hide_mobile")
+
+try:	
+	item_name_elems = results.find_all(class_='item_description_title')
+	price_elems = results.find_all(class_="item_price hide_mobile")
+
+except AttributeError:
+	print(f'Sorry, no results found for {search}')
+	exit()
 
 
 # Clean up the lists
@@ -59,4 +70,4 @@ for key in list(results_dict):
 
 # Printing the sorted dictionary
 for key in sorted(results_dict,reverse=True):
-    print(key, results_dict[key])
+    print(key,"€", results_dict[key])
