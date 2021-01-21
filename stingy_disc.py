@@ -1,4 +1,3 @@
-import test
 import requests
 from bs4 import BeautifulSoup
 from simple_term_menu import TerminalMenu
