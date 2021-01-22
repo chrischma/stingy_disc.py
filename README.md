@@ -1,6 +1,6 @@
 # stingy_disc.py
 
-![Screenshot](https://github.com/chrischma/stingy_disc.py/blob/main/sceenshot.png)
+![Screenshot](https://github.com/chrischma/stingy_disc.py/blob/main/stingy_screenshot.png)
 
 ## About
 <code> stingy_disc.py</code> is a commandline tool that adds a new search option to the discogs search.
