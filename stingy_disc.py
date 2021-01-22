@@ -1,19 +1,25 @@
+import re
 import requests
 from bs4 import BeautifulSoup
 from simple_term_menu import TerminalMenu
+from colorama import init, Fore, Back, Style
 
-def check_fav_file():
+
+init() #initializing colorama
+
+def read_fav_file():
 	try: 
 		fav_file = open('favorites.txt','r')
 
 	except IOError:
-		print("You have no favorites so far. Use a new search to add some...")
+		print("You have no favorites so far. Use a new search-term to add some...")
 
 	finally: 
 		fav_file.close()
 
 
-def read_favs():
+def import_favs_from_file():
+
 	try: 
 		global fav_file
 		fav_file = open('favorites.txt','r')
@@ -22,149 +28,166 @@ def read_favs():
 		open('favorites.txt','w')
 
 	global favs
+
 	favs = list(fav_file.read().split(","))
 
 
-def add_fav():
-	if search in favs:
-		print(f'"{search}" ist bereits in deinen Favoriten.')
+def save_request_to_favorites():
+
+	if search_term in favs:
+		print(f'"{search_term}" ist bereits in deinen Favoriten.')
+
 	else: 
 		
 		fav_file = open('favorites.txt','a')
-		fav_file.write(f',{search}')
+		fav_file.write(f',{search_term}')
 
-		print(f'Okay. I added >> {search} << to your favorites!')
-		exit()
+		print(f'Okay. I added >> {search_term} << to your favorites!')
+	
+	main_menu()
 
 
-def get_results(search):
-	check_fav_file()
+def set_value_color(value):
 
-	URL = f'https://www.discogs.com/sell/list?&limit=100&q={search}&format=Vinyl&format_desc=LP'
+		global color
+
+		if value < 10:
+			color=Fore.GREEN
+
+		elif value > 10 and value<20:
+			color=Fore.YELLOW
+
+		elif value > 20:
+			color=Fore.RED
+
+
+def get_results(search_term):
+
+	read_fav_file()
+
+	URL = f'https://www.discogs.com/sell/list?&limit=250&q={search_term}&format=Vinyl&format_desc=LP'
 	page = requests.get(URL)
 
 	soup = BeautifulSoup(page.content, 'html.parser')
 	results = soup.find(id="pjax_container")
 
 	try:	
-		items = results.find_all(class_='item_description_title')
-		prices = results.find_all(class_="item_price hide_mobile")
+		prices = results.find_all(class_='item_description_title')
+		items = results.find_all(class_="item_price hide_mobile")
 
 	except AttributeError:
-		print(f'Sorry, no results found for {search}')
-		exit()
 
-	# Clean up the price list
-	price_list = []
-	for prices in prices:
-		price_list.append(prices.text.strip())
+		pass 
 
-	price_list = [x.strip(' ') for x in price_list]
 
-	# Clean up the item names
-	item_list = []
-	for items in items:
-		item_list.append(items.text.strip())
+	items_list_clean = re.findall("(?<=- )(.*)(?=\()",results.text)
 
-	global price_list_final
-	price_list_final=[]
-
-	for i in price_list:
-	    
-	    j = i.split('shipping')
-	    j.pop(0)
-	    j = j[0]
-	    j = j.replace(' ','').replace('\n','').replace('total','').replace('about','').replace('€','')
-
-	    try:
-	    	j = float(j)
-	    except ValueError:
-	    	j = 0			
-
-	    price_list_final.append(j)
+	try:
+		price_list_clean=re.findall("(?<=€)(.*)(?= total)",results.text)
+	except ValueError:
+		price = 0	
 
 
 	global results_dict
-	results_dict = dict(zip(price_list_final,item_list))
 
-	# if the price is 0, there might be something wrong. i delete these results.
-	for key in list(results_dict):
-		if key == 0:
-			del results_dict[key]
-
-	items = []
-	prices = []
+	results_dict = dict(zip(price_list_clean,items_list_clean))
 
 	# Create two lists from dictionary
-	
+
+	prices = []
+	items = []
+
 	for key in sorted(results_dict,reverse=True):
-	 
-	    items.append(key)					
-	    prices.append(results_dict[key])
+	
+	 	try:
+	 		if float(key) <= 99:
+
+		 		prices.append(float(key))
+		 		items.append(results_dict[key][:40])
+
+	 	except ValueError:
+	 		pass					
+	
 
 
 	if mm_result == 0:
 
-		print(f'\n \n Results for "{search}":')
+		print(f'\n \n Results for "{search_term}":')
 		i = 0
-		for _ in items:
-			print(f' {items[i]}€ {prices[i]}')
+		for _ in prices:
+
+			set_value_color(prices[i])
+
+			result_string = str(color+str(prices[i]).ljust(5,"0")+" € "+Style.RESET_ALL+str(items[i]))		
+
+			print(result_string)
+
 			i+=1
-		print("\n")
 
-	print(f'*** Best Deal: {items[len(items)-1]} - {prices[len(prices)-1]} **') 
+		print("Add last search_term to favorites?")
 
-
-	if mm_result == 0: # Ask user, if he / she wants to add the result to favs
-		print("Add last search to favorites?")
 		m = TerminalMenu(["Maybe later...","Yes!"])
-		result = m.show()
+		r = m.show()
 
-		if result == 0:
-			main_menu()
-
-		if result == 1:
-			add_fav()
+		if r == 1:
+			save_request_to_favorites()
 			print("added!")
-			main_menu()
+		
+		main_menu()
+
+
+	if mm_result == 2: # This only shows the lowest price (for the case that user checks multiple items at once)
+
+		set_value_color(float(prices[len(prices)-1]))
+		print(color,str(prices[len(prices)-1]).ljust(5," "),Style.RESET_ALL,str(items[len(items)-1])[:40]) 
+
 
 def print_favs():
-	print("\n\n These are your saved search requests: \n")
+
+	print("\n\n These are your saved search_term requests: \n")
 	print(*favs,sep="\n")
 
 	main_menu()
 
 	
-def check_fav_list():
+def get_prices_of_all_favorites():
+
+	print(f'Now checking {len(favs)} favorites...')
 
 	i = len(favs)-1
-	while i != -1:
-		get_results(favs[i])
-		i-=1
+	for _ in favs:
+		try:
+			get_results(favs[i])
+			i-=1
+		except UnboundLocalError:
+			pass
 
-def new_search():
-	global search
-	search = input("Enter any artist, album... : ")
-	#search = search.replace(" ","+")
-	options = "y"
-	get_results(search)
+
+def new_search_term():
+	global search_term
+	search_term = input("Enter any artist, album... : ")
+
+	get_results(search_term)
+
 
 def main_menu():
-    m = TerminalMenu(["Create new search","Show Favorites","Check prices for favorites","Quit"],"\n")
+    m = TerminalMenu(["Search for a new item","Show my saved search-terms","Check all prices","Quit"],"\n")
     global mm_result
     mm_result = m.show()
 
     if mm_result == 0:
-    	new_search()
+    	new_search_term()
 
-    if mm_result == 1:
+    elif mm_result == 1:
     	print_favs()
 
-    if mm_result == 2:
-    	check_fav_list()
+    elif mm_result == 2:
+    	get_prices_of_all_favorites()
 
-    if mm_result == 3:
+    else:
     	exit()
 
-read_favs()
+
+import_favs_from_file()
 main_menu()
+
