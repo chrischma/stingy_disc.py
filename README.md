@@ -1,4 +1,4 @@
-# stingy_disc.py
+# stingy_disc.py (Version 0.7)
 
 ![Screenshot](https://github.com/chrischma/stingy_disc.py/blob/main/stingy_screenshot.png)
 
@@ -8,15 +8,18 @@
 it helps you to find the cheapest price for the record you are searching for. the regular search engine of discogs only allows you to sort the results by price, while this price does not include shipping. as shipping prices can be ridiculously high some time, it is very helpful to have a list sorted by the **total price**. and this is what stingy_disc.py does. 
 
 ## Features
-* find the lowest total price for a record on discogs
 * colorful, minimalist interface
-* save favorite search terms for later
-* check lowest price for all your favorite items with one click
+* find the lowest total price for a record on discogs
+* import your search list from discogs
+* find lowest total price for every item in your search list
 
+
+
+## Setup
+1. make sure the following modules are installed: <code>requests</code>, <code>BeautifulSoup</code>, <code>Colorama</code> and <code>simple_term_menu </code>.
+2. Enter your Username in line 7 of <code> stingy_disc.py </code> (for example: <code> YOUR_USERNAME = "otto9876543" </code>
 
 ## Usage
-make sure the following modules are installed: <code>requests</code>, <code>BeautifulSoup</code> and <code>simple_term_menu </code>.
-
 run <code> python3 stingy_disc.py </code>. 
 
 Enter any artist, album, single, ep and so on. 
