@@ -1,10 +1,12 @@
 import re
+import time
+import pync
 import requests
 from bs4 import BeautifulSoup
 from simple_term_menu import TerminalMenu
 from colorama import init, Fore, Back, Style
 
-YOUR_USERNAME = ""
+YOUR_USERNAME = "schmalin"
 
 init() #initializing colorama
 
@@ -27,8 +29,16 @@ def set_value_color(value):
 			color=Back.LIGHTRED_EX
 
 all_best_prices = []
+item_counter = 1
 
 def get_results(search_term):
+	global item_counter
+
+	if item_counter % 25 == 0:
+		pync.notify(f'{item_counter}/{len(favs_from_discogs)} items done.')
+	#print(f'now searching item nr {item_counter}/{len(favs_from_discogs)}: {search_term}')
+	time.sleep(1)
+	item_counter += 1
 
 	URL = f'https://www.discogs.com/sell/list?&limit=250&currency=EUR&q={search_term}&format=Vinyl&format_desc=LP'
 	page = requests.get(URL)
@@ -70,9 +80,14 @@ def get_results(search_term):
 
 	for _ in results:
 
-		regex_for_price = re.findall("(?<=€)(.*)(?=total)",str(results[i]))[0][:-6]
-		regex_for_name = re.findall("(?<=>)(.*)(?=LP)",str(results[i]))[0][:-6]
-		regex_for_url = re.findall("(?<=title)(.*)(?=\")",str(results[i]))[0][31:]
+		try:
+
+			regex_for_price = re.findall("(?<=€)(.*)(?=total)",str(results[i]))[0][:-6]
+			regex_for_name = re.findall("(?<=>)(.*)(?=LP)",str(results[i]))[0][:-6]
+			regex_for_url = re.findall("(?<=title)(.*)(?=\")",str(results[i]))[0][31:]
+
+		except IndexError:
+			pass
 
 		try: regex_for_name=regex_for_name[:40]
 
@@ -106,9 +121,11 @@ def get_results(search_term):
 
 	# Print best result
 	print(f'{color}{str(obj_list[0].item_price).ljust(6)} {obj_list[0].item_name} {obj_list[0].item_url}{Style.RESET_ALL}')
+	time.sleep(3)
+	
 
 def read_favs_from_discogs():
-	URL = f'https://www.discogs.com/de/wantlist?page=1&limit=25&user={YOUR_USERNAME}'
+	URL = f'https://www.discogs.com/de/wantlist?page=1&limit=100&user={YOUR_USERNAME}'
 	page = requests.get(URL)
 
 	soup = BeautifulSoup(page.content, 'html.parser')
@@ -150,6 +167,7 @@ def print_favs():
 def get_prices_of_all_favorites():
 
 	print(f'\n Finding best offers for {len(favs)} favorites...')
+	print(f' Estimated time: {round(len((favs)*4)/60)} minutes.')
 
 	i = len(favs)-1
 	for _ in favs:
@@ -173,7 +191,9 @@ def print_all_best_prices():
 
 	for item in all_best_prices:
 		set_value_color(item.item_price)
-		print(color,str(item.item_price).ljust(6), item.item_name,Style.RESET_ALL)
+		print(color,str(item.item_price).ljust(6), item.item_name, item.item_url,Style.RESET_ALL)
+
+	print(len(favs_from_discogs-len(all_best_prices)),"items have been ignored")
 
 def main_menu():
     m = TerminalMenu(["NEW CUSTOM SEARCH (Beta)","SHOW FAVORITES","CHECK ALL PRICES","QUIT"],"\n")
@@ -188,8 +208,10 @@ def main_menu():
     	print_favs()
 
     elif mm_result == 2:
+    	item_counter = 1
     	get_prices_of_all_favorites()
     	print_all_best_prices()
+    	pync.notify("done!")
 
     else:
     	exit()
