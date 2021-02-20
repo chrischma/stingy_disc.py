@@ -1,4 +1,4 @@
-# stingy_disc.py (Version 0.7)
+# stingy_disc.py 
 
 ![Screenshot](https://github.com/chrischma/stingy_disc.py/blob/main/stingy_screenshot.png)
 
