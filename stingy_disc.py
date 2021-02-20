@@ -30,7 +30,7 @@ all_best_prices = []
 
 def get_results(search_term):
 
-	URL = f'https://www.discogs.com/sell/list?&limit=25&currency=EUR&q={search_term}&format=Vinyl&format_desc=LP'
+	URL = f'https://www.discogs.com/sell/list?&limit=250&currency=EUR&q={search_term}&format=Vinyl&format_desc=LP'
 	page = requests.get(URL)
 	soup = BeautifulSoup(page.content, 'html.parser')
 
