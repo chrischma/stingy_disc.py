@@ -125,7 +125,7 @@ def get_results(search_term):
 	
 
 def read_favs_from_discogs():
-	URL = f'https://www.discogs.com/de/wantlist?page=1&limit=100&user={YOUR_USERNAME}'
+	URL = f'https://www.discogs.com/de/wantlist?page=1&limit=250&user={YOUR_USERNAME}'
 	page = requests.get(URL)
 
 	soup = BeautifulSoup(page.content, 'html.parser')
@@ -193,8 +193,7 @@ def print_all_best_prices():
 		set_value_color(item.item_price)
 		print(color,str(item.item_price).ljust(6), item.item_name, item.item_url,Style.RESET_ALL)
 
-	print(len(favs_from_discogs-len(all_best_prices)),"items have been ignored")
-
+	
 def main_menu():
     m = TerminalMenu(["NEW CUSTOM SEARCH (Beta)","SHOW FAVORITES","CHECK ALL PRICES","QUIT"],"\n")
     global mm_result
