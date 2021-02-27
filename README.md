@@ -12,6 +12,7 @@ it helps you to find the cheapest price for the record you are searching for. th
 * find the lowest total price for a record on discogs
 * import your search list from discogs
 * find lowest total price for every item in your search list
+* get links to all recommended items
 
 ## Beta-Features (find_seller.py-Module)
 * find the best seller for the items of your personal wantlist
