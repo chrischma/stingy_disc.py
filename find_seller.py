@@ -320,5 +320,4 @@ sellers_in_budget.sort(key=lambda x: x.item_count, reverse=True)
 for _ in sellers_in_budget:
   print(f'For {_.total_price} you get {_.item_count} items from {_.name}. thats {_.price_per_item} Euro per Item.')
 
-
 driver.close()
