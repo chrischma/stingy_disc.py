@@ -265,7 +265,7 @@ for _ in range(accounts_count):
 
   try:
     price_total = str(check_cart_with_items_of(name))
-    new_item_count = seller_list[i].item_count-duplicate_counter
+    new_item_count = seller_list[i].item_count
     seller_list[i].item_count = new_item_count
 
   except selenium.common.exceptions.NoSuchElementException:
