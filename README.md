@@ -19,7 +19,7 @@ it helps you to find the cheapest price for the record you are searching for. th
 * find sellers with best prices per item
 
 ## Setup
-1. make sure the following modules are installed: <code>requests</code>, <code>BeautifulSoup</code>, <code>Colorama</code> and <code>simple_term_menu </code>.
+1. make sure all dependencies are installed.
 2. Enter your Username in line 7 of <code> stingy_disc.py </code> (for example: <code> YOUR_USERNAME = "otto9876543" </code>
 
 ## Usage
