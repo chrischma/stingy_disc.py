@@ -15,6 +15,7 @@ it helps you to find the cheapest price for the record you are searching for. th
 
 ## Beta-Features 
 * find the best seller for the items of your personal wantlist: find out, where you get the biggest number of items from your wantlist within your budget
+* find sellers with best prices per item
 
 ## Setup
 1. make sure the following modules are installed: <code>requests</code>, <code>BeautifulSoup</code>, <code>Colorama</code> and <code>simple_term_menu </code>.
