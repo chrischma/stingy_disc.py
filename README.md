@@ -14,7 +14,7 @@ it helps you to find the cheapest price for the record you are searching for. th
 * find lowest total price for every item in your search list
 
 ## Beta-Features (find_seller.py-Module)
-* find the best seller for the items of your personal wantlist: find out, where you get the biggest number of items from your wantlist within your budget
+* find the best seller for the items of your personal wantlist
 * find sellers with best prices per item
 
 ## Setup
