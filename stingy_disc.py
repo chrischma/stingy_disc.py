@@ -1,12 +1,14 @@
-import re
-import time
-import pync
-import requests
+import re, time, pync, requests
 from bs4 import BeautifulSoup
 from simple_term_menu import TerminalMenu
 from colorama import init, Fore, Back, Style
 
-YOUR_USERNAME = "schmalin"
+YOUR_USERNAME = ""
+
+# Todo: 
+ 	# setup file erstellen
+ 	# f-strings in parameterstrings umwandeln
+
 
 init() #initializing colorama
 
