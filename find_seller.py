@@ -1,9 +1,9 @@
+# Note: Please make sure you got the 'chromedriver' file in selenium/webdriver/chrome.
+# Download 'chromedriver' here: https://chromedriver.chromium.org/downloads.
+
 import selenium, time, random, re, os
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
-
-# Note: Please make sure you got the 'chromedriver' file in selenium/webdriver/chrome.
-# Download 'chromedriver' here: https://chromedriver.chromium.org/downloads.
 
 USERNAME = 'USERNAME'             # Your Discogs Username
 PASSWORD = 'PASSWORD'             # Your Discogs Password
