@@ -1,16 +1,16 @@
-import selenium
+import selenium, time, random, re, os
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
-import time, random, re, os
 
 # Note: Please make sure you got the 'chromedriver' file in selenium/webdriver/chrome.
 # Download 'chromedriver' here: https://chromedriver.chromium.org/downloads.
 
 USERNAME = 'USERNAME'             # Your Discogs Username
 PASSWORD = 'PASSWORD'             # Your Discogs Password
-MAXIMUM_BUDGET = 100.00           # Set your general budget. What are you willing to pay for your order in total?
+MAXIMUM_BUDGET = 50.00            # Set your general budget. What are you willing to pay for your order in total?
 MAXIMUM_BUDGET_PER_ITEM = 20.00   # Set the maximum cost for one item. Other items will be ignored
-NUMBER_OF_ACCOUNTS_TO_CHECK = 10  # Set how much Accounts the script should check. One account takes around 30 seconds.
+NUMBER_OF_ACCOUNTS_TO_CHECK = 25  # Default: 25 - Set how much Accounts the script should check.
+ACCOUNT_INDEX_TO_START_AT = 0     # Default: 0  - Only change this, if you want to ignore the first x accounts.
 
 seller_list=list()
 
@@ -50,14 +50,14 @@ def login_to_discogs():
   password_field.send_keys(PASSWORD)
   time.sleep(1)
 
-  print('confirming login...')
+  print('pressing login button...')
   driver.find_element_by_css_selector("button[type='submit']").click()
 
 def save_results_to_file():
 
   with open('page.html', 'w') as f:
     f.write(driver.page_source)
-
+print('Hi! i am searching for the best sellers now! \n this will take around',round(NUMBER_OF_ACCOUNTS_TO_CHECK*0.6),'minutes...')
 print("starting webdriver...")
 driver = webdriver.Chrome()
 #driver.minimize_window()
@@ -69,7 +69,7 @@ login_to_discogs()
 #scroll_whole_page()
 #save_results_to_file()
 
-clprint("reading results from saved html")
+print("reading results from saved html")
 results_html = open('page.html','r')
 results_html = results_html.read().replace('\n','')
 items = re.findall(r"(?<=seller\/)(.*?)(?=\<\/a\>)",results_html)
@@ -83,6 +83,25 @@ class seller():
     self.total_price = total_price
     self.price_per_item = price_per_item
     self.ignore_seller = ignore_seller
+
+def get_total_price_from_cart():
+  driver.get('https://www.discogs.com/de/sell/cart/')
+
+  with open('cart.html', 'w') as f:
+    f.write(driver.page_source)
+
+  cart_html = str(open('cart.html', 'r').read())
+
+  try:
+    print('reading total price from cart...')
+    total_price = str(cart_html.strip().replace("\n", " "))
+    tpr = re.findall(r'(?<=Gesamt)(.*?)(?=span)', total_price)[0].replace(" ", "")
+    total_price = str(re.findall(r'(?<=€)(.*?)(?=\<)', tpr))[2:][:-2]
+    print('current total price:',total_price)
+
+  except IndexError:
+    total_price = 999999999
+  return total_price
 
 def create_sellers_from_results():
 
@@ -105,7 +124,6 @@ def create_sellers_from_results():
 while count >= 0:
 
   if "?ev=hxiiw" in items[count]:
-    print(items[count])
     item_list.append(items[count])
   count -= 1
 
@@ -113,9 +131,6 @@ create_sellers_from_results()
 
 seller_list_sorted = sorted(seller_list, key=lambda x: x.item_count, reverse=True)
 seller_list = seller_list_sorted
-
-for _ in seller_list:
-  print(_.item_count,_.name)
 
 def check_cart_with_items_of(name):
 
@@ -129,195 +144,120 @@ def check_cart_with_items_of(name):
   print('opening results html')
   items_for_sale_html = open('items.html','r')
   items_for_sale_html = items_for_sale_html.read()
+  item_listed_prices = list()
 
-  print('search for item ids')
   item_ids = re.findall('(?<=add=)(.*?)(?=&amp)',items_for_sale_html)
+  items_for_sale_html = items_for_sale_html.strip().replace(' ', '').replace('\n', '')
+  item_names = re.findall(r'(?<=item_description_title\"data-followable\=\"true\"\>)(.*?)(?=\))',items_for_sale_html)
+  item_listed_prices_str = re.findall(r'(?<=p\"\>\<spanclass=\"price\"\>)(.*?)(?=&nbsp)',items_for_sale_html)
+  for _ in item_listed_prices_str:
+    _ = float(_.replace(",","."))
+    item_listed_prices.append(_)
 
-  for _ in item_ids:
-    print('adding item to chart...')
-    driver.get(f'https://www.discogs.com/de/sell/cart/?add={_}&amp;ev=atc_br')
-    time.sleep(2)
-
-  with open('cart.html', 'w') as f:
-    f.write(driver.page_source)
-
-  print("loading cart from saved file...")
-  cart_html = str(open('cart.html','r').read())
-  cart_table = cart_html.strip().replace(' ','').replace('\n','')
-  item_names_dirty = re.findall(r'(?<=aclass\=\"item_link\")(.*?)(?=\))',cart_table)
-  item_prices = re.findall(r'(?<=pricenumericnowrap)(.*?)(?=&nbsp)',cart_table)
-
-  item_prices_clean = list()
-
-  for _ in item_prices:
-    _ = _.replace(",",".")
-    try:
-      _ = _.split(sep=':')[1]
-    except IndexError:
-      _ = float(_.split(sep='>')[1])
-
-    item_prices_clean.append(_)
-
-  item_prices = item_prices_clean
-
-  item_names = list()
-  item_delete_links_dirty = list()
-  item_delete_links = list()
-
-  print("finding item names")
-  for _ in item_names_dirty:
-    item_names.append(_.split(sep="\">")[1])
-    item_delete_links_dirty.append((_.split(sep="\">")[0]))
-
-  print("cleaning item links...")
-  for _ in item_delete_links_dirty:
-    id = _.split(sep="item")[1][1:]
-    clean_item_link = str(f'http://discogs.com/de/sell/cart/?remove={id}')
-    item_delete_links.append(clean_item_link)
-
-  print(len(item_names),len(item_delete_links),len(item_prices))
-
-  class item_in_cart():
-    def __init__(self,item_name,item_price,item_delete_link):
+  class listed_item():
+    def __init__(self,item_name,item_price,item_id):
       self.item_name = item_name
       self.item_price = item_price
-      self.item_delete_link = item_delete_link
+      self.item_id= item_id
 
-  items_in_cart = list()
-  global duplicate_counter
-  duplicate_counter = 0
-
-  # Too expensive Vinyls will be ignored here
+  listed_items = list()
   i = 0
-  for _ in range (len(item_names)):
-    if float(item_prices[i]) <= MAXIMUM_BUDGET_PER_ITEM:
-      items_in_cart.append(item_in_cart(item_names[i],item_prices[i],item_delete_links[i]))
-    else:
-      driver.get(item_delete_links[i])
-      duplicate_counter+=1
-      print("Deleted item because too expensive.")
+
+  for _ in item_names:
+    listed_items.append(listed_item(item_names[i],item_listed_prices[i],item_ids[i]))
     i+=1
 
-  print(len(items_in_cart))
-  time.sleep(5)
+  items_by_price = sorted(listed_items, key=lambda x: x.item_price, reverse=False)
 
   i = 0
   j = 1
 
 
-  print('items in car',len(items_in_cart))
+  while i <= len(items_by_price):
+    try:
+      if items_by_price[i].item_name == items_by_price[j].item_name:
+        items_by_price.pop(j)
+        print("duplicate removed")
+      j+=1
 
-  try:
-    while j<=len(items_in_cart):
-
-        if items_in_cart[i].item_name == items_in_cart[j].item_name:
-          driver.get(items_in_cart[j].item_delete_link)
-          duplicate_counter +=1
-          print("duplicate removed")
-        else:
-          print("no duplicate")
-
-        time.sleep(1)
-        i+=1
-        j+=1
-
-  except IndexError:
-    print('Done.')
-
-  for _ in items_in_cart:
-    print(_.item_name,_.item_price,_.item_delete_link)
-
-  driver.get('https://www.discogs.com/de/sell/cart/')
-  with open('cart.html', 'w') as f:
-    f.write(driver.page_source)
-  cart_html = str(open('cart.html', 'r').read())
-
-  try:
-    print('reading total price from cart...')
-    total_price = str(cart_html.strip().replace("\n"," "))
-    tpr = re.findall(r'(?<=Gesamt)(.*?)(?=span)',total_price)[0].replace(" ","")
-    total_price = str(re.findall(r'(?<=€)(.*?)(?=\<)',tpr))[2:][:-2]
-    print(total_price)
-  except IndexError:
-    total_price = 999999999
-    return total_price
+    except IndexError:
+      i += 1
+      j = i+1
 
 
-  list_of_items_in_cart = list()
+  i = 0
+  for _ in items_by_price:
+    driver.get(f'https://www.discogs.com/de/sell/cart/?add={items_by_price[i].item_id}&amp;ev=atc_br')
 
-  clprint('clearing cart')
+    if float(get_total_price_from_cart()) < MAXIMUM_BUDGET:
+      i += 1
+      print('still budget left, adding another item (',i,'items in cart)')
+      time.sleep(2)
+
+    else:
+      print("Cart is too expensive. Removing last item...")
+      driver.get(str(f'http://discogs.com/de/sell/cart/?remove={items_by_price[i].item_id}'))
+      time.sleep(2)
+
+  number_of_items_sold_by_user = i
+  final_price = get_total_price_from_cart()
+  time.sleep(3)
+
+  print("clearing cart of ",name)
   clearing_link = str(f'https://www.discogs.com/de/sell/cart/?remove_seller={name}')
   driver.get(clearing_link)
+  time.sleep(3)
 
-  print(total_price)
-  return total_price
+  print("creating",name,"as favorite seller")
+  new_favorite_seller = seller(name,number_of_items_sold_by_user,final_price,(round(float(final_price)/float(number_of_items_sold_by_user))),False)
+  favorite_sellers.append(new_favorite_seller)
+  return
 
 favorite_sellers = list()
 
-i = 0                                           
-accounts_count = NUMBER_OF_ACCOUNTS_TO_CHECK
-for _ in range(accounts_count):
+def check_offers_for_multiple_sellers():
+  i = ACCOUNT_INDEX_TO_START_AT
+  accounts_count = NUMBER_OF_ACCOUNTS_TO_CHECK
+  for _ in range(accounts_count):
+    print("taking a pause")
+    time.sleep(5)
 
-  print('taking a pause')
-  time.sleep(7)
-  print('Scanning offers of user nr.',_,'of',accounts_count)
-  name = ''.join(seller_list[i].name)
-
-  try:
-    price_total = str(check_cart_with_items_of(name))
-    new_item_count = seller_list[i].item_count
-    seller_list[i].item_count = new_item_count
-
-  except selenium.common.exceptions.NoSuchElementException:
-    price_total = 9999999999
-
-  try:
+    print('checking account number ',i)
     try:
-      final_price_total = float(price_total)
-    except ValueError:
-      final_price_total = 9999999999
+      check_cart_with_items_of(str(seller_list_sorted[i].name)[2:][:-2])
 
-    final_item_count = float(seller_list[i].item_count-duplicate_counter)
-    price_per_item = round(final_price_total/final_item_count)
-  except ZeroDivisionError:
-    price_per_item = 9999999999
+    except IndexError:
+      print('items of',seller_list_sorted[i].name,'are not available in your country. user ignored.')
+      seller(seller_list_sorted[i].name,item_count=1,total_price=1,price_per_item=1,ignore_seller=True)
 
-  new_seller = seller(seller_list[i].name,int(int(seller_list[i].item_count)-int(duplicate_counter)),price_total,price_per_item,False)
-  try:
-    if float(new_seller.total_price) <= 10000:
-      favorite_sellers.append(new_seller)
-      print("seller added to favlist")
-    else:
-      print("seller ignored")
-  except ValueError:
-    print('seller ignored')
-  i+=1
+    i += 1
 
 
-sellers_in_budget = list ()
+def print_result_statistics():
 
-for _ in favorite_sellers:
-  if float(_.total_price) <= MAXIMUM_BUDGET:
-    sellers_in_budget.append(_)
+  print("\n\n + + + these sellers give you the HIGHEST NUMBER OF ITEMS within your budget")
+  favorite_sellers.sort(key=lambda x: x.item_count, reverse=True)
 
-print("\n\n MOST ITEMS AT ONCE")
-favorite_sellers.sort(key=lambda x: x.item_count, reverse=True)
-for _ in favorite_sellers:
-  print(f'{_.item_count} items for {_.total_price} are sold by {_.name}. thats {_.price_per_item} Euro per Item.')
+  for _ in favorite_sellers:
+    print(_.item_count,'items for a total price of',_.total_price,'at ',_.name)
+  print(f'best seller: {favorite_sellers[0].name} - URL: http://discogs.com/user/{favorite_sellers[0].name}')
 
-print("\n\n BEST PRICE PER ITEM")
-favorite_sellers.sort(key=lambda x: x.price_per_item, reverse=False)
-for _ in favorite_sellers:
-  print(f'{_.price_per_item} Euro per Item: {_.name} sells {_.item_count} items for {_.total_price} total. ')
+  print("\n\n + + + these sellers give you the LOWEST FINAL PRICE within your budget")
+  favorite_sellers.sort(key=lambda x: x.total_price, reverse=False)
 
-print("\n\n MOST ITEMS AT ONCE")
-favorite_sellers.sort(key=lambda x: x.total_price, reverse=True)
-for _ in favorite_sellers:
-  print(f'For {_.total_price} you get {_.item_count} items from {_.name}. thats {_.price_per_item} Euro per Item.')
+  for _ in favorite_sellers:
+    print(_.total_price,'Euro -',_.item_count,'items at',_.name)
+  print(f'best seller: {favorite_sellers[0].name} - URL: http://discogs.com/user/{favorite_sellers[0].name}')
 
-print("\n\n SELLERS WITHIN YOUR BUDGET OF",MAXIMUM_BUDGET)
-sellers_in_budget.sort(key=lambda x: x.item_count, reverse=True)
-for _ in sellers_in_budget:
-  print(f'For {_.total_price} you get {_.item_count} items from {_.name}. thats {_.price_per_item} Euro per Item.')
+  print("\n\n + + + these sellers give you the LOWEST PRICE PER ITEM within your budget")
+  favorite_sellers.sort(key=lambda x: x.price_per_item, reverse=False)
 
+  for _ in favorite_sellers:
+    print(_.price_per_item,'Euro per Item. Total price:',_.total_price,'Euro for ',_.item_count, 'items at', _.name)
+  print(f'best seller: {favorite_sellers[0].name} - URL: http://discogs.com/user/{favorite_sellers[0].name}')
+
+
+check_offers_for_multiple_sellers()
+print_result_statistics()
 driver.close()
+exit()
