@@ -17,6 +17,10 @@ it helps you to find the cheapest price for the record you are searching for. th
 ## Beta-Features (find_seller.py-Module)
 * find the best seller for the items of your personal wantlist
 * find sellers with best prices per item
+* set a budget: skript can fill your cart until certain budget is reached 
+* script will return the url of the user where you get most items for your money
+
+
 
 ## Setup
 1. make sure all dependencies are installed.
