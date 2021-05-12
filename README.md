@@ -31,3 +31,7 @@ run <code> python3 stingy_disc.py </code>.
 
 Enter any artist, album, single, ep and so on. 
 stingy_disc.py will respond with a list of up to 250 offers.
+
+## To-Do
+* add headless mode
+* standalone-app
